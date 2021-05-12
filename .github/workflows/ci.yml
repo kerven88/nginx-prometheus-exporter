@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2.3.4
       - name: Setup Golang Environment
         uses: actions/setup-go@v2
         with:
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2.3.4
       - name: Build Prometheus-Exporter
         run: make nginx-prometheus-exporter
       - name: Docker Buildx
@@ -79,7 +79,7 @@ jobs:
       contains(github.ref, 'refs/tags/')
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2.3.4
       - name: Retrieve Tag
         id: get_version
         run: echo ::set-output name=GIT_TAG::$(echo ${GITHUB_REF/refs\/tags\//} | tr -d v)
