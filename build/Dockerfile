@@ -1,17 +1,32 @@
-FROM golang:1.15 as builder
+FROM golang:1.16 as base
 ARG VERSION
 ARG GIT_COMMIT
+ARG DATE
+ARG TARGETARCH
+
 WORKDIR /go/src/github.com/nginxinc/nginx-prometheus-exporter
-COPY *.go ./
-COPY vendor ./vendor
+
+FROM base as builder
 COPY go.mod go.sum ./
+RUN go mod download
+COPY *.go ./
 COPY collector ./collector
 COPY client ./client
-RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -mod=vendor -a -installsuffix cgo -ldflags "-X main.version=${VERSION} -X main.gitCommit=${GIT_COMMIT}" -o exporter .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH go build -trimpath -a -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${GIT_COMMIT} -X main.date=${DATE}" -o nginx-prometheus-exporter .
 
-FROM gcr.io/distroless/static:latest
-COPY --from=builder /go/src/github.com/nginxinc/nginx-prometheus-exporter/exporter /usr/bin/
 
+FROM scratch as intermediate
+COPY --from=base /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 USER 1001:1001
+ENTRYPOINT [ "/usr/bin/nginx-prometheus-exporter" ]
 
-ENTRYPOINT [ "/usr/bin/exporter" ]
+
+FROM intermediate as container
+COPY --from=builder /go/src/github.com/nginxinc/nginx-prometheus-exporter/nginx-prometheus-exporter /usr/bin/
+
+
+FROM intermediate as local
+ARG TARGETARCH
+ARG TARGETVARIANT
+
+COPY dist/nginx-prometheus-exporter_linux_$TARGETARCH${TARGETVARIANT:+_7}*/nginx-prometheus-exporter /usr/bin/
